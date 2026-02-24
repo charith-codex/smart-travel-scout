@@ -39,11 +39,32 @@ export type TravelResult = TravelItem & {
   reason: string;
 };
 
+// All unique tags available in the inventory
+export const ALL_TAGS = [
+  "cold",
+  "nature",
+  "hiking",
+  "history",
+  "culture",
+  "walking",
+  "animals",
+  "adventure",
+  "photography",
+  "beach",
+  "surfing",
+  "young-vibe",
+  "climbing",
+  "view",
+] as const;
+
 // Zod schema for the frontend search form
 export const searchFormSchema = z.object({
   query: z
     .string()
     .min(3, "Please enter a slightly longer text to get better results."),
+  minPrice: z.coerce.number().min(0, "Min price must be 0 or more.").optional(),
+  maxPrice: z.coerce.number().min(0, "Max price must be 0 or more.").optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 export type SearchFormValues = z.infer<typeof searchFormSchema>;

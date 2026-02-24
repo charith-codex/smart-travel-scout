@@ -24,7 +24,7 @@ export default function Home() {
                 <Plane className="w-8 h-8 text-accent relative z-10" />
               </div>
               <h1 className="text-5xl md:text-7xl font-serif font-black tracking-tight text-white drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)] italic">
-                Ceylonese Scout
+                Ceylon Scout
               </h1>
             </div>
             <p className="text-xl md:text-2xl text-white/95 font-serif italic max-w-2xl mx-auto drop-shadow-lg px-4">

@@ -4,17 +4,19 @@ import { useState } from "react";
 import { ScoutForm } from "@/components/ScoutForm";
 import { TravelResultCard } from "@/components/TravelResultCard";
 import { SearchFormValues, TravelResult } from "@/lib/types";
-import { Map, Loader2, Sparkles } from "lucide-react";
+import { Map, Loader2, Sparkles, AlertCircle } from "lucide-react";
 
 export function TravelScoutClient() {
   const [results, setResults] = useState<TravelResult[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isRateLimited, setIsRateLimited] = useState(false);
 
   const handleSearch = async (values: SearchFormValues) => {
     setIsLoading(true);
     setError(null);
     setResults(null);
+    setIsRateLimited(false);
 
     try {
       const response = await fetch("/api/scout", {
@@ -24,6 +26,15 @@ export function TravelScoutClient() {
         },
         body: JSON.stringify(values),
       });
+
+      if (response.status === 429) {
+        const data = await response.json();
+        setIsRateLimited(true);
+        setError(
+          data.error ?? "Too many requests. Please wait before trying again.",
+        );
+        return;
+      }
 
       if (!response.ok) {
         throw new Error("Failed to fetch recommendations. Please try again.");
@@ -56,7 +67,7 @@ export function TravelScoutClient() {
       </section>
 
       {/* Results Section */}
-      <section className="space-y-6 min-h-[400px]">
+      <section className="space-y-6 min-h-100">
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-10 space-y-4">
             <div className="relative">
@@ -70,11 +81,23 @@ export function TravelScoutClient() {
         )}
 
         {error && (
-          <div className="bg-red-500/10 backdrop-blur-md text-white p-8 rounded-2xl text-center shadow-2xl border border-red-500/20 flex flex-col items-center gap-3 animate-in fade-in slide-in-from-bottom-4">
-            <div className="p-3 bg-red-500 rounded-full mb-1">
-              <Map className="w-6 h-6" />
+          <div
+            className={`backdrop-blur-md text-white p-8 rounded-2xl text-center shadow-2xl flex flex-col items-center gap-3 animate-in fade-in slide-in-from-bottom-4 ${
+              isRateLimited
+                ? "bg-amber-500/10 border border-amber-500/20"
+                : "bg-red-500/10 border border-red-500/20"
+            }`}
+          >
+            <div
+              className={`p-3 rounded-full mb-1 ${
+                isRateLimited ? "bg-amber-500" : "bg-red-500"
+              }`}
+            >
+              <AlertCircle className="w-6 h-6" />
             </div>
-            <h3 className="font-bold text-xl">Something went wrong</h3>
+            <h3 className="font-bold text-xl">
+              {isRateLimited ? "Slow down, explorer!" : "Something went wrong"}
+            </h3>
             <p className="text-sm opacity-90 max-w-md">{error}</p>
           </div>
         )}
