@@ -1,16 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { ScoutForm } from "@/components/ScoutForm";
 import { TravelResultCard } from "@/components/TravelResultCard";
 import { SearchFormValues, TravelResult } from "@/lib/types";
-import { Map, Loader2, Sparkles, AlertCircle } from "lucide-react";
+import { Map, Loader2, Sparkles, AlertCircle, RotateCcw } from "lucide-react";
 
 export function TravelScoutClient() {
   const [results, setResults] = useState<TravelResult[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isRateLimited, setIsRateLimited] = useState(false);
+  const [searchKey, setSearchKey] = useState(0);
+  const resultsSectionRef = useRef<HTMLElement>(null);
+
+  const handleClear = () => {
+    setResults(null);
+    setError(null);
+    setIsRateLimited(false);
+    setSearchKey((k) => k + 1);
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 50);
+  };
 
   const handleSearch = async (values: SearchFormValues) => {
     setIsLoading(true);
@@ -48,6 +60,12 @@ export function TravelScoutClient() {
       );
     } finally {
       setIsLoading(false);
+      setTimeout(() => {
+        resultsSectionRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 100);
     }
   };
 
@@ -61,13 +79,17 @@ export function TravelScoutClient() {
             Where does your spirit lead?
           </h2>
           <div className="relative z-10">
-            <ScoutForm onSubmit={handleSearch} isLoading={isLoading} />
+            <ScoutForm
+              key={searchKey}
+              onSubmit={handleSearch}
+              isLoading={isLoading}
+            />
           </div>
         </div>
       </section>
 
       {/* Results Section */}
-      <section className="space-y-6 min-h-100">
+      <section ref={resultsSectionRef} className="space-y-6 min-h-100">
         {isLoading && (
           <div className="flex flex-col items-center justify-center py-10 space-y-4">
             <div className="relative">
@@ -99,6 +121,13 @@ export function TravelScoutClient() {
               {isRateLimited ? "Slow down, explorer!" : "Something went wrong"}
             </h3>
             <p className="text-sm opacity-90 max-w-md">{error}</p>
+            <button
+              onClick={handleClear}
+              className="mt-2 flex items-center gap-2 px-5 py-2 rounded-full text-sm font-semibold bg-white/20 hover:bg-white/30 border border-white/30 text-white transition-all active:scale-95"
+            >
+              <RotateCcw className="w-4 h-4" />
+              New Search
+            </button>
           </div>
         )}
 
@@ -114,6 +143,13 @@ export function TravelScoutClient() {
                       {results.length === 1 ? "match" : "matches"}
                     </h2>
                   </div>
+                  <button
+                    onClick={handleClear}
+                    className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-all active:scale-95"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    New Search
+                  </button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
                   {results.map((result, idx) => (
@@ -141,6 +177,13 @@ export function TravelScoutClient() {
                     Try broadening your vibe or budget for more results.
                   </p>
                 </div>
+                <button
+                  onClick={handleClear}
+                  className="flex items-center gap-2 mx-auto px-6 py-2.5 rounded-full text-sm font-semibold bg-white/15 hover:bg-white/25 border border-white/25 text-white transition-all active:scale-95"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  New Search
+                </button>
               </div>
             )}
           </div>
