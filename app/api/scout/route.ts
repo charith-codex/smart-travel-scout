@@ -3,6 +3,7 @@ import { generateText, Output } from "ai";
 import { NextResponse } from "next/server";
 import { travelInventory } from "@/lib/data/inventory";
 import { aiResponseSchema, TravelResult } from "@/lib/types";
+import { getTopKCandidates } from "@/lib/embeddings";
 
 // ---------------------------------------------------------------------------
 // In-memory rate limiter
@@ -126,6 +127,17 @@ export async function POST(req: Request) {
       });
     }
 
+    // --- Vector search: semantic top-k narrowing ---
+    // Embeds the user query and ranks rubric-filtered candidates by cosine
+    // similarity. Only the top-k most semantically relevant items are sent to
+    // the LLM, keeping the prompt short regardless of inventory size.
+    const TOP_K = 5;
+    const semanticCandidates = await getTopKCandidates(
+      query,
+      filteredInventory,
+      TOP_K,
+    );
+
     // Build a human-readable description of the rubric for the LLM
     const rubricDescription: string[] = [];
     if (
@@ -144,10 +156,10 @@ export async function POST(req: Request) {
 
     const rubricNote =
       rubricDescription.length > 0
-        ? `\n      PRE-SCREENING APPLIED: The inventory has already been filtered by a programmatic rubric (${rubricDescription.join("; ")}). Only items that passed the rubric are provided below.`
-        : "";
+        ? `\n      PRE-SCREENING APPLIED: The inventory has already been filtered by a programmatic rubric (${rubricDescription.join("; ")}), then ranked by semantic similarity to your query. Only the top ${semanticCandidates.length} most relevant items are provided below.`
+        : `\n      PRE-SCREENING APPLIED: Items have been ranked by semantic similarity to your query. Only the top ${semanticCandidates.length} most relevant items are provided below.`;
 
-    const inventoryContext = JSON.stringify(filteredInventory, null, 2);
+    const inventoryContext = JSON.stringify(semanticCandidates, null, 2);
 
     const systemPrompt = `
       You are an expert travel assistant. Your task is to match the user's travel request 
@@ -177,11 +189,11 @@ export async function POST(req: Request) {
       temperature: 0,
     });
 
-    // Enrich LLM results with full inventory data (only from filtered set)
+    // Enrich LLM results with full inventory data (only from semantic candidates)
     const enrichedResults: TravelResult[] = [];
 
     for (const match of output.results) {
-      const inventoryItem = filteredInventory.find(
+      const inventoryItem = semanticCandidates.find(
         (item) => item.id === match.id,
       );
       if (inventoryItem) {
