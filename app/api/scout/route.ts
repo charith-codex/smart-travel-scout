@@ -105,9 +105,25 @@ export async function POST(req: Request) {
 
     const filteredInventory = applyRubric(travelInventory, rubricFilters);
 
+    const excludedCount = travelInventory.length - filteredInventory.length;
+
     // If the rubric eliminates everything, skip the LLM entirely
     if (filteredInventory.length === 0) {
-      return NextResponse.json({ results: [] });
+      return NextResponse.json({ results: [], excludedCount });
+    }
+
+    // If only one candidate survives the rubric, skip the LLM — the answer is already determined
+    if (filteredInventory.length === 1) {
+      const only = filteredInventory[0];
+      return NextResponse.json({
+        results: [
+          {
+            ...only,
+            reason: `${only.title} is the only destination that matches your selected filters.`,
+          },
+        ],
+        excludedCount,
+      });
     }
 
     // Build a human-readable description of the rubric for the LLM
@@ -176,7 +192,7 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ results: enrichedResults });
+    return NextResponse.json({ results: enrichedResults, excludedCount });
   } catch (error) {
     console.error("Error in scout API:", error);
     return NextResponse.json(

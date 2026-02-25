@@ -21,6 +21,7 @@ export const aiResponseSchema = z.object({
           ),
         reason: z
           .string()
+          .min(10, "Reason must be at least 10 characters.")
           .describe(
             "A short explanation of why this item matches the user's request, referencing tags, price, or location.",
           ),

@@ -4,7 +4,14 @@ import { useState, useRef } from "react";
 import { ScoutForm } from "@/components/ScoutForm";
 import { TravelResultCard } from "@/components/TravelResultCard";
 import { SearchFormValues, TravelResult } from "@/lib/types";
-import { Map, Loader2, Sparkles, AlertCircle, RotateCcw } from "lucide-react";
+import {
+  Map,
+  Loader2,
+  Sparkles,
+  AlertCircle,
+  RotateCcw,
+  Filter,
+} from "lucide-react";
 
 export function TravelScoutClient() {
   const [results, setResults] = useState<TravelResult[] | null>(null);
@@ -12,12 +19,17 @@ export function TravelScoutClient() {
   const [error, setError] = useState<string | null>(null);
   const [isRateLimited, setIsRateLimited] = useState(false);
   const [searchKey, setSearchKey] = useState(0);
+  const [excludedCount, setExcludedCount] = useState<number>(0);
+  const [lastSearchValues, setLastSearchValues] =
+    useState<SearchFormValues | null>(null);
   const resultsSectionRef = useRef<HTMLElement>(null);
 
   const handleClear = () => {
     setResults(null);
     setError(null);
     setIsRateLimited(false);
+    setExcludedCount(0);
+    setLastSearchValues(null);
     setSearchKey((k) => k + 1);
     setTimeout(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -29,6 +41,8 @@ export function TravelScoutClient() {
     setError(null);
     setResults(null);
     setIsRateLimited(false);
+    setExcludedCount(0);
+    setLastSearchValues(values);
 
     try {
       const response = await fetch("/api/scout", {
@@ -54,9 +68,12 @@ export function TravelScoutClient() {
 
       const data = await response.json();
       setResults(data.results || []);
+      setExcludedCount(data.excludedCount ?? 0);
     } catch (err) {
+      const baseMsg =
+        err instanceof Error ? err.message : "An unexpected error occurred";
       setError(
-        err instanceof Error ? err.message : "An unexpected error occurred",
+        `${baseMsg} Try broadening your budget or simplifying your query.`,
       );
     } finally {
       setIsLoading(false);
@@ -135,21 +152,56 @@ export function TravelScoutClient() {
           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700">
             {results.length > 0 ? (
               <>
-                <div className="flex items-center justify-between px-2">
-                  <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 shadow-lg">
-                    <Map className="w-5 h-5 text-white" />
-                    <h2 className="text-lg font-bold text-white">
-                      Discovered {results.length}{" "}
-                      {results.length === 1 ? "match" : "matches"}
-                    </h2>
+                <div className="flex flex-col gap-3 px-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 shadow-lg">
+                      <Map className="w-5 h-5 text-white" />
+                      <h2 className="text-lg font-bold text-white">
+                        Discovered {results.length}{" "}
+                        {results.length === 1 ? "match" : "matches"}
+                      </h2>
+                    </div>
+                    <button
+                      onClick={handleClear}
+                      className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-all active:scale-95"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      New Search
+                    </button>
                   </div>
-                  <button
-                    onClick={handleClear}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold bg-white/10 hover:bg-white/20 border border-white/20 text-white transition-all active:scale-95"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    New Search
-                  </button>
+
+                  {/* Applied filters summary */}
+                  {lastSearchValues && (
+                    <div className="flex flex-wrap gap-2 items-center">
+                      <div className="flex items-center gap-1 text-white/50 text-xs">
+                        <Filter className="w-3 h-3" />
+                        <span>Filters:</span>
+                      </div>
+                      {(lastSearchValues.minPrice !== undefined ||
+                        lastSearchValues.maxPrice !== undefined) && (
+                        <span className="text-xs bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full">
+                          ${lastSearchValues.minPrice ?? 0}–$
+                          {lastSearchValues.maxPrice ?? "∞"}
+                        </span>
+                      )}
+                      {lastSearchValues.tags &&
+                        lastSearchValues.tags.length > 0 &&
+                        lastSearchValues.tags.map((tag) => (
+                          <span
+                            key={tag}
+                            className="text-xs bg-white/10 border border-white/20 text-white px-3 py-1 rounded-full"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                      {excludedCount > 0 && (
+                        <span className="text-xs bg-amber-500/20 border border-amber-400/30 text-amber-200 px-3 py-1 rounded-full">
+                          {excludedCount} destination
+                          {excludedCount !== 1 ? "s" : ""} excluded by filters
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pb-12">
                   {results.map((result, idx) => (
