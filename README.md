@@ -1,5 +1,7 @@
 # Smart Travel Scout
 
+<img width="1594" height="786" alt="image" src="https://github.com/user-attachments/assets/45685e7e-49bf-46b7-a983-b37f20821a13" />
+
 A "Smart Travel Scout" web application built with Next.js, Shadcn UI, React Hook Form, and the Vercel AI SDK (Gemini). It takes a user's natural language request (e.g. "a chilled beach weekend with surfing vibes under $100"), processes it via an LLM, and strictly returns matched packages from a specific travel inventory.
 
 ## Assignment Submission Questions with Answers
